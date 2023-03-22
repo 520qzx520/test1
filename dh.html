@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>波浪式页面切换</title>
+    <style>
+        * {
+  padding: 0;
+  margin: 0;
+}
+body {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+}
+
+.page {
+  min-width: 100%;
+  position: absolute;
+  width: inherit;
+  height: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.page {
+  display: none;
+}
+.page.show {
+  display: flex;
+}
+#page-1 {
+  background: #4fc3f7;
+}
+#page-2 {
+  background: #6cc88a;
+}
+.page section {
+  text-align: center;
+}
+section p {
+  font-size: 1.5em;
+  line-height: 1.5;
+  margin-top: 20px;
+}
+.pageload-link {
+  padding: 13px 20px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.6em;
+  white-space: nowrap;
+}
+
+.pageload-link:hover {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* SVG  动画 */
+.loader-overlay {
+  position: absolute;
+  width: inherit;
+  height: inherit;
+  z-index: 100;
+  visibility: hidden;
+}
+.loader-overlay.show {
+  visibility: visible;
+}
+
+.loader-overlay::before,
+.loader-overlay::after {
+  content: "";
+  width: 30px;
+  height: 30px;
+  background-color: red;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1000;
+  border-radius: 50%;
+  animation: rotate 2s infinite cubic-bezier(0.44, 0.1, 0.52, 0.95);
+  mix-blend-mode: multiply;
+  visibility: hidden;
+}
+
+.loader-overlay::before {
+  background-color: #00f2ea;
+}
+.loader-overlay::after {
+  background-color: #ff0050;
+  animation-delay: 1s;
+}
+
+@keyframes rotate {
+  0%,
+  100% {
+    transform: translate(20px);
+  }
+  25% {
+    scale: 0.3;
+  }
+  50% {
+    transform: translate(-50px);
+  }
+  75% {
+    scale: 1.3;
+  }
+}
+.loader-overlay.loading::before,
+.loader-overlay.loading::after {
+  visibility: visible;
+}
+/* prettier-ignore */
+#path {
+  d: path(
+    "m -5,-5 0,70 90,0 0,-70 z M 0,30 c 0,0 15,20 40,0 25,-20 40,0 40,0 l 0,0 C 80,30 65,10 40,30 15,50 0,30 0,30 z"
+  );
+  fill: #fff;
+}
+
+@keyframes path_open {
+  0% {
+    d: path(
+      "m -5,-5 0,70 90,0 0,-70 z m 5,5 c 0,0 7.9843788,0 40,0 35,0 40,0 40,0 l 0,60 c 0,0 -3.944487,0 -40,0 -30,0 -40,0 -40,0 z"
+    );
+  }
+  100% {
+    d: path(
+      "m -5,-5 0,70 90,0 0,-70 z m 5,35 c 0,0 15,20 40,0 25,-20 40,0 40,0 l 0,0 C 80,30 65,10 40,30 15,50 0,30 0,30 z"
+    );
+  }
+}
+
+@keyframes path_close {
+  0% {
+    d: path(
+      "m -5,-5 0,70 90,0 0,-70 z m 5,5 c 0,0 7.9843788,0 40,0 35,0 40,0 40,0 l 0,60 c 0,0 -3.944487,0 -40,0 -30,0 -40,0 -40,0 z"
+    );
+  }
+  100% {
+    d: path(
+      "m -5,-5 0,70 90,0 0,-70 z m 5,35 c 0,0 15,20 40,0 25,-20 40,0 40,0 l 0,0 C 80,30 65,10 40,30 15,50 0,30 0,30 z"
+    );
+  }
+} 
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="loader-overlay">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="100%"
+          height="100%"
+          viewBox="0 0 80 60"
+          preserveAspectRatio="none"
+        >
+          <path id="path" fill="#fff"></path>
+        </svg>
+      </div>
+      <div class="page show" id="page-1">
+        <section>
+          <p>点击下面按钮，开始新页面加载</p>
+          <p><a class="pageload-link" href="#page-2">下载页面</a></p>
+        </section>
+      </div>
+
+      <div class="page" id="page-2">
+        <section>
+          <h2>数据下载成功，新页面完成展示</h2>
+          <p><a class="pageload-link" href="#page-1">返回</a></p>
+        </section>
+      </div>
+    </div>
+
+    <script>
+        ;(function () {
+  var container = document.querySelector(".container")
+  var triggerLoading = [].slice.call(
+    container.querySelectorAll("a.pageload-link")
+  )
+  var loader = container.querySelector(".loader-overlay")
+  var pages = [].slice.call(container.querySelectorAll(".page"))
+  var path = document.querySelector("#path")
+
+  currentPage = 0
+  console.log(pages)
+  function init() {
+    path.addEventListener("animationend", (event) => {
+      if (event.animationName === "path_open") {
+        loader.classList.add("loading")
+        setTimeout(function () {
+          loader.classList.remove("loading")
+          path.style.d =
+            " path( 'm -5,-5 0,70 90,0 0,-70 z m 5,5 c 0,0 7.9843788,0 40,0 35,0 40,0 40,0 l 0,60 c 0,0 -3.944487,0 -40,0 -30,0 -40,0 -40,0 z') "
+          path.style.animation = "path_close  1s ease-in-out reverse"
+          pages[currentPage].classList.remove("show")
+          currentPage = currentPage ? 0 : 1
+          pages[currentPage].classList.add("show")
+        }, 2000)
+      }
+
+      if (event.animationName === "path_close") {
+        loader.classList.remove("show")
+      }
+    })
+
+    triggerLoading.forEach(function (trigger) {
+      trigger.addEventListener("click", function (ev) {
+        ev.preventDefault()
+        loader.classList.add("show")
+        path.style.animation = "path_open 1s ease-in-out forwards"
+      })
+    })
+  }
+  init()
+})() 
+        </script>
+  </body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="file" class="upload_inp" multiple />
+    <button class="btn">上传form-data</button>
+    <span class="spantext">进度</span>
+    <br />
+    <input type="file" class="upload_inp_64" />
+    <button class="btn_64">上传base64</button>
+
+    <br />
+    <input type="file" class="upload_inp_chuck" />
+    <button class="btn_chuck">切片上传</button>
+    <script src="node_modules/spark-md5/spark-md5.min.js"></script>
+    <script src="node_modules/qs/dist/qs.js"></script>
+    <script src="node_modules/axios/dist/axios.min.js"></script>
+    <script src="axios/index.js"></script>
+
+    <script>
+      (function () {
+        const upload_inp = document.querySelector('.upload_inp');
+        const btn = document.querySelector('.btn');
+        let curSpan = document.querySelector('.spantext');
+        let file = null;
+        upload_inp.addEventListener('change', async () => {
+          file = upload_inp.files[0];
+          //
+        });
+
+        btn.addEventListener('click', async () => {
+          let formData = new FormData();
+          formData.append('file', file);
+          formData.append('filename', file.name);
+          const res = await api.post('/upload', formData, {
+            onUploadProgress(e) {
+              curSpan.innerHTML = `${((e.loaded / e.total) * 100).toFixed(2)}%`;
+            },
+          });
+          console.log(res);
+          // console.log(formData)
+        });
+      })();
+
+      (function () {
+        const upload_inp64 = document.querySelector('.upload_inp_64');
+        const btn64 = document.querySelector('.btn_64');
+        let file = null;
+        btn64.addEventListener('click', async () => {
+          const filebase64 = await changeBASE64(file);
+          const res = await api.post(
+            '/base64',
+            {
+              // 编码防止出现乱码
+              file: encodeURIComponent(filebase64),
+              filename: file.name,
+            },
+            {
+              //请求头
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+            },
+          );
+
+          console.log(res);
+        });
+        // 把选择文件读取成base64
+        const changeBASE64 = (file) => {
+          return new Promise((resolve) => {
+            // js 内置类, 很多方法转换成各种格式
+            let fileReader = new FileReader();
+            // 转成base64
+            fileReader.readAsDataURL(file);
+            // 异步的
+            fileReader.onload = (event) => {
+              resolve(event.target.result);
+            };
+          });
+        };
+        upload_inp64.addEventListener('change', () => {
+          file = upload_inp64.files[0];
+        });
+      })();
+
+      (function () {
+        const upload_inp_chuck = document.querySelector('.upload_inp_chuck');
+        const btn_chuck = document.querySelector('.btn_chuck');
+        let file = null;
+        upload_inp_chuck.addEventListener('change', () => {
+          file = upload_inp_chuck.files[0];
+        });
+
+        btn_chuck.addEventListener('click', async () => {
+          let { HASH, suffix } = await changeBuffer(file);
+          let { chunck: fileList, count } = sliceChuck(file, HASH, suffix);
+          let { data: alreadyFile } = await api.get('/already_upload', {
+            params: {
+              HASH,
+            },
+          });
+          console.log(alreadyFile);
+          fileList.forEach(async (item) => {
+            if (
+              alreadyFile.file?.length > 0 &&
+              alreadyFile.file.includes(item.filename)
+            ) {
+              console.log('该分片已经上传', item.filename);
+              return;
+            }
+            let fm = new FormData();
+            fm.append('file', item.file);
+            fm.append('filename', item.filename);
+            await api
+              .post('/upload_chunck', fm)
+              .then(async (data) => {
+                const res = await api.post(
+                  '/upload_merge',
+                  {
+                    HASH,
+                  },
+                  {
+                    headers: {
+                      'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                  },
+                );
+                console.log(res);
+              })
+              .catch((err) => {
+                alert('当前切片上传失败', err);
+              });
+          });
+        });
+
+        const changeBuffer = (file) => {
+          return new Promise((resolve) => {
+            let fileReader = new FileReader();
+            fileReader.readAsArrayBuffer(file);
+            fileReader.onload = (e) => {
+              let buffer = e.target.result;
+              let spark = new SparkMD5.ArrayBuffer();
+              spark.append(buffer);
+              let HASH = spark.end();
+              let suffix = /\.([0-9a-zA-Z]+)$/.exec(file.name)[1];
+              resolve({
+                buffer,
+                HASH,
+                suffix,
+                filename: `${HASH}.${suffix}`,
+              });
+            };
+          });
+        };
+
+        const sliceChuck = (file, HASH, suffix) => {
+          let max = 1024 * 100;
+          let count = Math.ceil(file.size / max);
+          if (count > 100) {
+            max = file.size / 100;
+            count = 100;
+          }
+          let index = 0;
+          let chunck = [];
+          while (index < count) {
+            chunck.push({
+              file: file.slice(index * max, (index + 1) * max),
+              filename: `${HASH}_${index + 1}.${suffix}`,
+            });
+            index++;
+          }
+          index = 0;
+          return { chunck, count };
+        };
+      })();
+    </script>
+  </body>
+</html>

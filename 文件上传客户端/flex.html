@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .flex{
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .item{
+            width: 30%;
+            height: 100px;
+        }
+        .item1{
+            background-color: aqua;
+        }
+        .item2{
+            background-color: rgb(53, 42, 209);
+        }
+        .item3{
+            background-color: rgb(92, 223, 114);
+        }
+        .item4{
+            background-color: rgb(240, 143, 52);
+        }
+        .item5{
+            background-color: rgb(255, 0, 0);
+        }
+        .item6{
+            background-color: rgb(251, 0, 255);
+        }
+        .item7{
+            background-color: rgb(255, 183, 0);
+        }
+        .item8{
+            background-color: rgb(212, 0, 255);
+        }
+        .flex::after {  /* uniapp应使用 &:afte */
+		content: "";
+		width: 30%;
+        /* height: 100px; */
+	}
+    </style>
+</head>
+<body>
+    <div class="flex">
+        <div class="item1 item"></div>
+        <div class="item2 item"></div>
+        <div class="item3 item"></div>
+        <div class="item4 item"></div>
+        <div class="item5 item"></div>
+        <div class="item6 item"></div>
+        <div class="item7 item"></div>
+        <div class="item8 item"></div>
+    </div>
+</body>
+</html>
